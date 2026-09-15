@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Browser Extension Sandbox Shield
+      // Prevents third-party browser wallet extensions (MetaMask, Zerion, etc.)
+      // from crashing inside the sandboxed iframe preview when colliding on global properties.
+      (function() {
+        // 1. Intercept Object.defineProperty to avoid "Cannot redefine property" crashes
+        var origDefineProperty = Object.defineProperty;
+        Object.defineProperty = function(obj, prop, descriptor) {
+          try {
+            if (descriptor && typeof descriptor === 'object') {
+              descriptor.configurable = true;
+            }
+            return origDefineProperty.call(Object, obj, prop, descriptor);
+          } catch (e) {
+            try {
+              if (descriptor && 'value' in descriptor) {
+                obj[prop] = descriptor.value;
+              }
+            } catch (_) {}
+            return obj;
+          }
+        };
+
+        // Pre-configure isZerion safely on window so extensions don't throw
+        try {
+          var _isZerion = false;
+          origDefineProperty.call(Object, window, 'isZerion', {
+            get: function() { return _isZerion; },
+            set: function(v) { _isZerion = v; },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (_) {}
+
+        // 2. Filter extension-induced errors from bubbling to uncaught error handlers
+        function isExtensionError(msg, src) {
+          if (!msg) return false;
+          var str = String(msg);
+          return (
+            str.indexOf('isZerion') !== -1 ||
+            str.indexOf('MetaMask') !== -1 ||
+            str.indexOf('Cannot redefine property') !== -1 ||
+            (str.indexOf('is not a function') !== -1 && (!src || src.indexOf('extension') !== -1 || src.indexOf('chrome') !== -1 || src.indexOf('inpage') !== -1 || src.indexOf('content') !== -1))
+          );
+        }
+
+        window.addEventListener('error', function(event) {
+          if (isExtensionError(event.message, event.filename)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return true;
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(event) {
+          var reason = event.reason;
+          var msg = typeof reason === 'string' ? reason : (reason && reason.message) ? reason.message : '';
+          if (isExtensionError(msg, '')) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+
+        var prevOnError = window.onerror;
+        window.onerror = function(message, source, lineno, colno, error) {
+          if (isExtensionError(message, source)) {
+            return true;
+          }
+          if (typeof prevOnError === 'function') {
+            return prevOnError(message, source, lineno, colno, error);
+          }
+          return false;
+        };
+      })();
+    </script>
+    <title>Velora</title>
+    <meta name="description" content="Solana-native intelligent execution platform for tokenized stocks finding the lowest total execution cost." />
+    <meta property="og:title" content="Velora" />
+    <meta property="og:description" content="Solana-native intelligent execution platform for tokenized stocks finding the lowest total execution cost." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#FAFBFC] text-slate-900 antialiased selection:bg-emerald-100 selection:text-emerald-900">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

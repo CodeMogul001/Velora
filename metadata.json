@@ -1,0 +1,6 @@
+{
+  "name": "Velora",
+  "description": "Solana-native intelligent execution platform for tokenized stocks finding the lowest total execution cost.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
